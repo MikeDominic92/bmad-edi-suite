@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { loadTicket, calculateComplexity, generateCustomerResponses } from '../api/ticketService';
 import { getFolderStats } from '../api/fileSystem';
+import { useInvestigationStream } from '../hooks/useInvestigationStream';
 
 const InvestigationContext = createContext();
 
@@ -13,6 +14,17 @@ export const useInvestigation = () => {
 };
 
 export const InvestigationProvider = ({ children }) => {
+  // WebSocket integration for real-time updates from Electron backend
+  const {
+    currentPhase: wsCurrentPhase,
+    phaseData: wsPhaseData,
+    isConnected: wsConnected,
+    isInvestigationRunning: wsRunning,
+    startInvestigation: wsStartInvestigation,
+    pauseInvestigation: wsPauseInvestigation,
+    resumeInvestigation: wsResumeInvestigation
+  } = useInvestigationStream();
+
   // Load from localStorage on mount
   const loadFromStorage = (key, defaultValue) => {
     try {
@@ -83,17 +95,31 @@ export const InvestigationProvider = ({ children }) => {
     localStorage.clear();
   };
 
-  const startInvestigation = () => {
-    setIsInvestigationRunning(true);
-    setCurrentPhase(0);
+  const startInvestigation = async (ticketId) => {
+    // Use Electron backend if available
+    if (window.electronAPI && wsStartInvestigation) {
+      return await wsStartInvestigation(ticketId);
+    } else {
+      // Fallback to mock investigation
+      setIsInvestigationRunning(true);
+      setCurrentPhase(0);
+    }
   };
 
-  const pauseInvestigation = () => {
-    setIsInvestigationRunning(false);
+  const pauseInvestigation = async () => {
+    if (window.electronAPI && wsPauseInvestigation) {
+      return await wsPauseInvestigation();
+    } else {
+      setIsInvestigationRunning(false);
+    }
   };
 
-  const resumeInvestigation = () => {
-    setIsInvestigationRunning(true);
+  const resumeInvestigation = async () => {
+    if (window.electronAPI && wsResumeInvestigation) {
+      return await wsResumeInvestigation();
+    } else {
+      setIsInvestigationRunning(true);
+    }
   };
 
   // Load ticket data from file system
@@ -126,14 +152,59 @@ export const InvestigationProvider = ({ children }) => {
   const [folderStats, setFolderStats] = useState({ incoming: 3, processing: 1, customers: 87, tradingPartners: 24, resolution: 456 });
 
   useEffect(() => {
-    // Load folder stats on mount
-    getFolderStats().then(stats => setFolderStats(stats));
+    // Use Electron API if available, otherwise fallback to mock
+    if (window.electronAPI) {
+      window.electronAPI.getFolderStats().then(result => {
+        if (result.success) {
+          setFolderStats(result.stats);
+        }
+      });
+    } else {
+      getFolderStats().then(stats => setFolderStats(stats));
+    }
 
     // Load ticket data if not already loaded
     if (!ticketData) {
       loadTicketData();
     }
   }, []);
+
+  // Sync WebSocket state with local state
+  useEffect(() => {
+    if (wsConnected && wsCurrentPhase !== undefined) {
+      setCurrentPhase(wsCurrentPhase);
+    }
+  }, [wsCurrentPhase, wsConnected]);
+
+  useEffect(() => {
+    if (wsConnected && wsRunning !== undefined) {
+      setIsInvestigationRunning(wsRunning);
+    }
+  }, [wsRunning, wsConnected]);
+
+  // Update ticket data from WebSocket phase data
+  useEffect(() => {
+    if (wsPhaseData && wsPhaseData[1] && wsPhaseData[1].data) {
+      const extraction = wsPhaseData[1].data;
+      if (extraction.ticketId) {
+        setTicketData(extraction);
+      }
+    }
+
+    if (wsPhaseData && wsPhaseData[4] && wsPhaseData[4].data) {
+      const complexity = wsPhaseData[4].data;
+      if (complexity.score !== undefined) {
+        setComplexityScore(complexity.score);
+      }
+    }
+
+    if (wsPhaseData && wsPhaseData[8] && wsPhaseData[8].data) {
+      const response = wsPhaseData[8].data;
+      if (response.customerResponse) {
+        setCustomerResponse(response.customerResponse);
+      }
+    }
+  }, [wsPhaseData]);
 
   const value = {
     currentPhase,
@@ -156,6 +227,8 @@ export const InvestigationProvider = ({ children }) => {
     resumeInvestigation,
     loadTicketData,
     folderStats,
+    wsConnected,
+    wsPhaseData,
   };
 
   return (

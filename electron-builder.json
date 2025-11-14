@@ -1,0 +1,44 @@
+{
+  "appId": "com.bmad.edi.suite",
+  "productName": "BMAD-EDI Suite",
+  "directories": {
+    "output": "dist-electron",
+    "buildResources": "public"
+  },
+  "files": [
+    "electron/**/*",
+    "dist/**/*",
+    "package.json",
+    "node_modules/**/*"
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      },
+      {
+        "target": "portable",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "public/icon.ico",
+    "artifactName": "${productName}-${version}-${arch}.${ext}"
+  },
+  "mac": {
+    "target": ["dmg", "zip"],
+    "icon": "public/icon.icns",
+    "category": "public.app-category.business"
+  },
+  "linux": {
+    "target": ["AppImage", "deb"],
+    "icon": "public/icon.png",
+    "category": "Office"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  }
+}
