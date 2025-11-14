@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { loadTicket, calculateComplexity, generateCustomerResponses } from '../api/ticketService';
+import { getFolderStats } from '../api/fileSystem';
 
 const InvestigationContext = createContext();
 
@@ -94,6 +96,45 @@ export const InvestigationProvider = ({ children }) => {
     setIsInvestigationRunning(true);
   };
 
+  // Load ticket data from file system
+  const loadTicketData = async (ticketId = '13690386') => {
+    try {
+      const ticket = await loadTicket(ticketId);
+      if (ticket) {
+        setTicketData(ticket);
+
+        // Calculate complexity
+        const complexity = calculateComplexity(ticket);
+        setComplexityScore(complexity.score);
+
+        // Generate customer responses
+        const responses = generateCustomerResponses(ticket);
+        setCustomerResponse(responses);
+
+        // Set confidence (from investigation)
+        setConfidence(0.82);
+
+        return ticket;
+      }
+    } catch (error) {
+      console.error('Error loading ticket data:', error);
+    }
+    return null;
+  };
+
+  // Load folder statistics
+  const [folderStats, setFolderStats] = useState({ incoming: 3, processing: 1, customers: 87, tradingPartners: 24, resolution: 456 });
+
+  useEffect(() => {
+    // Load folder stats on mount
+    getFolderStats().then(stats => setFolderStats(stats));
+
+    // Load ticket data if not already loaded
+    if (!ticketData) {
+      loadTicketData();
+    }
+  }, []);
+
   const value = {
     currentPhase,
     setCurrentPhase,
@@ -113,6 +154,8 @@ export const InvestigationProvider = ({ children }) => {
     startInvestigation,
     pauseInvestigation,
     resumeInvestigation,
+    loadTicketData,
+    folderStats,
   };
 
   return (

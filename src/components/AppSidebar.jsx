@@ -139,12 +139,14 @@ const AgentStatus = () => {
 };
 
 const FileOperations = () => {
+  const { folderStats } = useInvestigation();
+
   const folders = [
-    { name: "incoming/", count: 3 },
-    { name: "processing/", count: 1 },
-    { name: "customers/", count: 87 },
-    { name: "Trading_Partners/", count: 24 },
-    { name: "resolution/", count: 456 },
+    { name: "incoming/", count: folderStats.incoming || 3 },
+    { name: "processing/", count: folderStats.processing || 1 },
+    { name: "customers/", count: folderStats.customers || 87 },
+    { name: "Trading_Partners/", count: folderStats.tradingPartners || 24 },
+    { name: "resolution/", count: folderStats.resolution || 456 },
   ];
 
   const handleUpload = () => {

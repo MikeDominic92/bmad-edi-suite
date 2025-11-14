@@ -3,6 +3,7 @@ import Button from '../Button';
 import { CheckIcon, CopyIcon } from '../Icons';
 import { copyToClipboard } from '../../utils/clipboard';
 import { useToast } from '../../hooks/useToast';
+import { useInvestigation } from '../../contexts/InvestigationContext';
 
 const ResponseBlock = ({ title, content }) => {
   const [copied, setCopied] = useState(false);
@@ -37,8 +38,10 @@ const ResponseBlock = ({ title, content }) => {
 
 const CustomerResponseCard = () => {
   const [activeTab, setActiveTab] = useState('initial');
+  const { customerResponse } = useInvestigation();
 
-  const initialResponse = `Hi Michelle,
+  // Use real customer response if available, otherwise use placeholder
+  const initialResponse = customerResponse?.initial || `Hi Michelle,
 
 My name is Michael Hoang, Cleo support engineer. I've received your ticket about the John Deere ASN rejection issue for part AXE21152. Let me take a look at what's going on with your ASN formatting. I'll get back to you shortly with my findings.
 
@@ -46,7 +49,7 @@ Best regards,
 Michael Hoang
 Cleo Support Engineer`;
 
-  const followUpResponse = `Hi Michelle,
+  const followUpResponse = customerResponse?.followUp || `Hi Michelle,
 
 I've identified the issue causing John Deere to show "No ASN" for your shipments. The problem is in how the line item information is being formatted in the LIN segment of your 856 ASN.
 
