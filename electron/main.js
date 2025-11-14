@@ -3,7 +3,8 @@ const path = require('path');
 const isDev = require('electron-is-dev');
 require('dotenv').config();
 
-const { InvestigationEngine } = require('./backend/investigation-engine');
+// Use trigger-based engine instead of Claude SDK
+const { InvestigationEngineTrigger } = require('./backend/investigation-engine-trigger');
 const { FileSystemManager } = require('./backend/file-system-manager');
 
 let mainWindow;
@@ -13,10 +14,9 @@ let fileSystemManager;
 // Initialize backend services
 async function initializeBackend() {
   try {
-    // Initialize investigation engine with Claude SDK
-    investigationEngine = new InvestigationEngine({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-      notebookUrl: process.env.NOTEBOOKLM_NOTEBOOK_URL
+    // Initialize investigation engine (trigger-based - uses Claude Code)
+    investigationEngine = new InvestigationEngineTrigger({
+      ticketsBasePath: process.env.TICKETS_BASE_PATH
     });
     await investigationEngine.initialize();
 
